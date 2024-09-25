@@ -3,7 +3,8 @@
 This is a decoder to decode the data files written in evio format.
 
 It is adjusted to adapt the Hall B DAQ system and data format.
-Currently, the FADC250 is the only module included in the decoder.
+
+Currently, the JLab FADC250 is the only module included in the decoder.
 
 To run it
 ```
