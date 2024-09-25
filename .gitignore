@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# datafiles
+data
+data/*
