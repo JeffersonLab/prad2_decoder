@@ -34,3 +34,7 @@
 # datafiles
 data
 data/*
+
+# cmake build folder
+build
+build/*
