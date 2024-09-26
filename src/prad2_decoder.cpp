@@ -30,15 +30,28 @@ int main(int argc, char*argv[])
 {
     ConfigArgs arg_parser;
     arg_parser.AddHelps({"-h", "--help"});
-    arg_parser.AddPositional("raw_data", "raw data in evio format");
-    arg_parser.AddPositional("root_file", "output data file in root format");
-    arg_parser.AddArg<int>("-n", "nev", "number of events to process (< 0 means all)", -1);
-    arg_parser.AddArgs<std::string>({"-m", "--module"}, "module", "json file for module configuration",
-                                    "database/modules/mapmt_module.json");
-    arg_parser.AddArg<int>("-r", "res", "resolution for waveform analysis", 3);
-    arg_parser.AddArg<double>("-t", "thres", "peak threshold for waveform analysis", 20.0);
-    arg_parser.AddArg<int>("-p", "npeds", "sample window width for pedestal searching", 8);
-    arg_parser.AddArg<double>("-f", "flat", "flatness requirement for pedestal searching", 1.0);
+    arg_parser.AddPositional("raw_data",
+            "raw data in evio format");
+    arg_parser.AddArgs<std::string>({"-o", "--output"}, "output",
+            "output path (root file)",
+            "decoded_data.root");
+    arg_parser.AddArg<int>("-n", "nev",
+            "number of events to process (< 0 means all)", -1);
+    arg_parser.AddArgs<std::string>({"-m", "--module"}, "module",
+            "json file for module configuration",
+            "database/esb_test_modules.json");
+    arg_parser.AddArg<int>("-r", "res",
+            "resolution for waveform analysis",
+            3);
+    arg_parser.AddArg<double>("-t", "thres",
+            "peak threshold for waveform analysis",
+            20.0);
+    arg_parser.AddArg<int>("-p", "npeds",
+            "sample window width for pedestal searching",
+            8);
+    arg_parser.AddArg<double>("-f", "flat",
+            "flatness requirement for pedestal searching",
+            1.0);
 
     auto args = arg_parser.ParseArgs(argc, argv);
 
@@ -48,7 +61,7 @@ int main(int argc, char*argv[])
     }
 
     write_raw_data(args["raw_data"].String(),
-                   args["root_file"].String(),
+                   args["output"].String(),
                    args["module"].String(),
                    args["nev"].Int(),
                    args["res"].Int(),
@@ -114,6 +127,10 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
     auto &ref = modules.front();
     std::vector<uint64_t> times;
     while ((evchan.Read() == evc::status::success) && (nev-- != 0)) {
+        evchan.PrintRawBuffer();
+        count++;
+        if (count >= 5) { break; }
+
         if((count % PROGRESS_COUNT) == 0) {
             std::cout << "Processed events - " << count << "\r" << std::flush;
         }

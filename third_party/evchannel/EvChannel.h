@@ -70,6 +70,7 @@ public:
 
     uint32_t *GetRawBuffer() { return &buffer[0]; }
     const uint32_t *GetRawBuffer() const { return &buffer[0]; }
+    void PrintRawBuffer();
 
     std::vector<uint32_t> &GetRawBufferVec() { return buffer; }
     const std::vector<uint32_t> &GetRawBufferVec() const { return buffer; }

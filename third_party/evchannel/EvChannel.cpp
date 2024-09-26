@@ -54,6 +54,18 @@ status EvChannel::Read()
     return evio_status(evRead(fHandle, &buffer[0], buffer.size()));
 }
 
+void EvChannel::PrintRawBuffer()
+{
+    auto evh = BankHeader(&buffer[0]);
+    std::cout << std::hex;
+    for (size_t i = 0; i < evh.length + 1; ++i) {
+        std::cout << "0x" << std::setw(8) << std::setfill('0') << buffer[i];
+        if (i == 0) { std::cout << "\t <-- header word"; }
+        std::cout << "\n";
+    }
+    std::cout << std::dec;
+}
+
 bool EvChannel::ScanBanks(const std::vector<uint32_t> &banks)
 {
     buffer_info.clear();
@@ -64,13 +76,13 @@ bool EvChannel::ScanBanks(const std::vector<uint32_t> &banks)
 
     // sanity checks
     if (evh.length > buffer.size()) {
-        std::cout << "Ev Channel Error: Incomplete or corrupted event: event length = " << evh.length
+        std::cerr << "Ev Channel Error: Incomplete or corrupted event: event length = " << evh.length
                   << ", while buffer size is only " << buffer.size() << std::endl;
         return false;
     }
 
     if (evh.type != DATA_BANK) {
-        std::cout << "Ev Channel Error: Expected DATA_BANK at the begining of an event, but got "
+        std::cerr << "Ev Channel Error: Expected DATA_BANK at the begining of an event, but got "
                   << evh.type << std::endl;
         return false;
     }

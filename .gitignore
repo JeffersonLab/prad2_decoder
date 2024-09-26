@@ -34,6 +34,8 @@
 # datafiles
 data
 data/*
+*.evio*
+*.root
 
 # cmake build folder
 build

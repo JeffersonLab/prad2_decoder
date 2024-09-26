@@ -1,0 +1,28 @@
+{
+    "modules": [
+        {
+            "crate": 1,
+            "slot": 3,
+            "bank": 3,
+            "type": "FADC250",
+            "channels": [
+                { "id": 0, "name": "Ch1", "type": "Calo" },
+                { "id": 1, "name": "Ch2", "type": "Calo" },
+                { "id": 2, "name": "Ch3", "type": "Calo" },
+                { "id": 3, "name": "Ch4", "type": "Calo" },
+                { "id": 4, "name": "Ch5", "type": "Calo" },
+                { "id": 5, "name": "Ch6", "type": "Calo" },
+                { "id": 6, "name": "Ch7", "type": "Calo" },
+                { "id": 7, "name": "Ch8", "type": "Calo" },
+                { "id": 8, "name": "Ch9", "type": "Calo" },
+                { "id": 9, "name": "Ch10", "type": "Calo" },
+                { "id": 10, "name": "Ch11", "type": "Calo" },
+                { "id": 11, "name": "Ch12", "type": "Calo" },
+                { "id": 12, "name": "Ch13", "type": "Calo" },
+                { "id": 13, "name": "Ch14", "type": "Calo" },
+                { "id": 14, "name": "Ch15", "type": "Calo" },
+                { "id": 15, "name": "Ch16", "type": "Calo" }
+            ]
+        }
+    ]
+}
