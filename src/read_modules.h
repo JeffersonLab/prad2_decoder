@@ -4,29 +4,26 @@
 #include <string>
 #include <iostream>
 #include "ConfigObject.h"
-#include "Fadc250Decoder.h"
-#include "SSPDecoder.h"
 #include "nlohmann/json.hpp"
 
 
 enum ModuleType
 {
     kFADC250 = 0,
-    kSSP = 1,
+    kAPV = 1,
     kMaxModuleType,
 };
-ENUM_MAP(ModuleType, 0, "FADC250|SSP");
+ENUM_MAP(ModuleType, 0, "FADC250|APV");
 
 
 enum ChannelType
 {
-    kMaPMT = 0,
-    kLAPPD,
+    kCalo = 0,
     kScint,
-    kCalo,
+    kGEM,
     kMaxChannelType,
 };
-ENUM_MAP(ChannelType, 0, "MaPMT|LAPPD|Scint|Calo");
+ENUM_MAP(ChannelType, 0, "Calo|Scint|GEM");
 
 
 struct Channel

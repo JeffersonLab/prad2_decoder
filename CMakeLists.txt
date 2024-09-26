@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-PROJECT(Analyzer C CXX)
+PROJECT(PRad2Decoder C CXX)
 
 option(USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 option(USE_EXTERNAL_EVIO "Use an external EVIO library" OFF)
@@ -21,9 +21,30 @@ include(GNUInstallDirs)
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/${MAIN_PROJECT_NAME_LC})
 
 #----------------------------------------------------------------------------
-add_subdirectory(third_party)
 add_subdirectory(decoder)
-add_subdirectory(ssp)
-add_subdirectory(src)
-add_subdirectory(tools)
+add_subdirectory(third_party)
+
+
+# build executable
+set(exe prad2_decoder)
+add_executable(${exe}
+    src/prad2_decoder.cpp
+)
+
+target_include_directories(${exe}
+PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+    ${ROOT_INCLUDE_DIRS}
+)
+
+target_link_libraries(${exe}
+LINK_PUBLIC
+    ${ROOT_LIBRARIES}
+    evc
+    conf
+    fdec
+)
+target_link_libraries(${exe} PRIVATE  nlohmann_json::nlohmann_json)
+
+install(TARGETS ${exe} DESTINATION ${CMAKE_INSTALL_BINDIR})
 

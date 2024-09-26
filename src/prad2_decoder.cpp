@@ -6,10 +6,9 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "EvChannel.h"
+#include "ConfigArgs.h"
 #include "Fadc250Decoder.h"
 #include "WfAnalyzer.h"
-#include "SSPDecoder.h"
-#include "ConfigArgs.h"
 #include "read_modules.h"
 
 #define PROGRESS_COUNT 1000
@@ -77,22 +76,6 @@ TTree *create_tree(std::vector<Module> &modules, const std::string tname = "EvTr
                 }
             }
             break;
-        case kSSP:
-            {
-                // assign a large enough buffer
-                auto event = new ssp::SSPEvent(10000);
-                m.event = static_cast<void*>(event);
-                std::string sname = Form("SSP%02d%02d", m.crate, m.slot);
-                tree->Branch((sname + "_evt").c_str(),      &event->tTrigNum,   "evt/I");
-                tree->Branch((sname + "_trigtime").c_str(), &event->tTrigTime,  "trigtime/D");
-                tree->Branch((sname + "_nedge").c_str(),    &event->Nedges,     "nedge/I");
-                tree->Branch((sname + "_ch").c_str(),       &event->channel[0], "ch[nedge]/I");
-                tree->Branch((sname + "_pol").c_str(),      &event->edge[0],    "pol[nedge]/I");
-                tree->Branch((sname + "_time").c_str(),     &event->time[0],    "time[nedge]/I");
-                tree->Branch((sname + "_fiber").c_str(),    &event->fiber[0],   "fiber[nedge]/I");
-                tree->Branch((sname + "_slot").c_str(),     &event->slot[0],    "slot[nedge]/I");
-            }
-            break;
         default:
             std::cout << "Unsupported module type " << m.type << std::endl;
             break;
@@ -120,23 +103,13 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
         return;
     }
 
-    // get banks
-    std::vector<uint32_t> dbanks;
-    for (auto &m : modules) {
-        if (std::find(dbanks.begin(), dbanks.end(), m.bank) == dbanks.end()) {
-            dbanks.push_back(m.bank);
-        }
-    }
-    // waveform analyzer
-    fdec::Analyzer analyzer(res, thres, npeds, flat);
-    // decoders
-    fdec::Fadc250Decoder fdecoder;
-    ssp::SSPDecoder sdecoder;
-
     // output
     auto *hfile = new TFile(opath.c_str(), "RECREATE", "MAPMT test results");
     auto tree = create_tree(modules);
 
+    fdec::Fadc250Decoder fdecoder;
+    // waveform analyzer
+    fdec::Analyzer analyzer(res, thres, npeds, flat);
     int count = 0;
     auto &ref = modules.front();
     std::vector<uint64_t> times;
@@ -157,7 +130,7 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
             continue;
         }
 
-        evchan.ScanBanks(dbanks);
+        evchan.Scan();
         // get block level
         int blvl = evchan.GetEvBuffer(ref.crate, ref.bank, ref.slot).size();
 
@@ -184,9 +157,6 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
                         }
                         times.push_back(event->time);
                     }
-                    break;
-                case kSSP:
-                    sdecoder.DecodeEvent(*static_cast<ssp::SSPEvent*>(mod.event), dbuf, buflen);
                     break;
                 default:
                     std::cout << "Unsupported module type " << mod.type << std::endl;
