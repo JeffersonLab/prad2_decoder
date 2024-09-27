@@ -127,10 +127,10 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
     auto &ref = modules.front();
     std::vector<uint64_t> times;
     while ((evchan.Read() == evc::status::success) && (nev-- != 0)) {
-        evchan.PrintRawBuffer();
+        std::cout << evchan.RawBufferAsString() << std::endl;
         count++;
         if (count >= 5) { break; }
-
+        continue;
         if((count % PROGRESS_COUNT) == 0) {
             std::cout << "Processed events - " << count << "\r" << std::flush;
         }
@@ -139,15 +139,15 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
         // only want physics events
         case CODA_PHY1:
         case CODA_PHY2:
+        default:
             break;
         case CODA_PRST:
         case CODA_GO:
         case CODA_END:
-        default:
             continue;
         }
 
-        evchan.Scan();
+        evchan.ScanBanks();
         // get block level
         int blvl = evchan.GetEvBuffer(ref.crate, ref.bank, ref.slot).size();
 

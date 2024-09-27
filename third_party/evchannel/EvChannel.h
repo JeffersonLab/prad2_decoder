@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <exception>
+#include <functional>
 #include <unordered_map>
 
 
@@ -65,12 +66,11 @@ public:
     virtual void Close();
     virtual status Read();
 
-    bool ScanBanks(const std::vector<uint32_t> &banks);
-    bool Scan() { return ScanBanks({}); }
+    size_t ScanBanks(std::function<bool(uint32_t, uint32_t)> filter = [] (uint32_t tag, uint32_t type) {return true;});
 
     uint32_t *GetRawBuffer() { return &buffer[0]; }
     const uint32_t *GetRawBuffer() const { return &buffer[0]; }
-    void PrintRawBuffer();
+    std::string RawBufferAsString(bool annotate_header = true);
 
     std::vector<uint32_t> &GetRawBufferVec() { return buffer; }
     const std::vector<uint32_t> &GetRawBufferVec() const { return buffer; }

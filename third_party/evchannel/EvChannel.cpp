@@ -1,6 +1,7 @@
 #include "EvChannel.h"
 #include "evio.h"
 #include <cstring>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <exception>
@@ -54,18 +55,47 @@ status EvChannel::Read()
     return evio_status(evRead(fHandle, &buffer[0], buffer.size()));
 }
 
-void EvChannel::PrintRawBuffer()
+std::string EvChannel::RawBufferAsString(bool annotate_header)
 {
+    std::stringstream ss;
     auto evh = BankHeader(&buffer[0]);
-    std::cout << std::hex;
-    for (size_t i = 0; i < evh.length + 1; ++i) {
-        std::cout << "0x" << std::setw(8) << std::setfill('0') << buffer[i];
-        if (i == 0) { std::cout << "\t <-- header word"; }
-        std::cout << "\n";
+    uint32_t iword = 0;
+    uint32_t event_length = evh.length + 1;
+    ss << std::hex;
+    for (size_t i = 0; i < event_length; ++i) {
+        ss << "0x" << std::setw(8) << std::setfill('0') << buffer[i];
+        if (annotate_header && (i == iword)) {
+            evh = BankHeader(&buffer[i]);
+            ss << "\t <- header word - "
+               << "length: " << std::dec << evh.length
+               << ", tag: " << std::dec << evh.tag << " (" << std::hex << "0x" << evh.tag << ")"
+               << ", type: " << DataType2str(evh.type) << " (" << std::hex << "0x" << evh.type << ")"
+               << ", num: " << std::dec << evh.num << " (" << std::hex << "0x" << evh.num << ")"
+               << std::hex;
+            iword += BankHeader::size();
+            switch (evh.type) {
+            case DATA_BANK:
+            case DATA_ALSOBANK:
+                break;
+            default:
+                iword += evh.length - 1;
+                break;
+            }
+        }
+        ss << "\n";
     }
-    std::cout << std::dec;
+    ss << std::dec;
+    ss << "== End of This Event ==\n";
+    return ss.str();
 }
 
+
+size_t ScanBanks(std::function<bool(uint32_t, uint32_t)> filter)
+{
+    return 0;
+}
+
+/*
 bool EvChannel::ScanBanks(const std::vector<uint32_t> &banks)
 {
     buffer_info.clear();
@@ -98,7 +128,6 @@ bool EvChannel::ScanBanks(const std::vector<uint32_t> &banks)
 
     } catch (std::exception const& e) {
         std::cerr << e.what() << std::endl;
-        /*
         std::cout << std::hex;
         for (size_t i = 0; i < evh.length + 1; ++i) {
             std::cout << "0x" << std::setw(8) << std::setfill('0') << buffer[i];
@@ -106,16 +135,17 @@ bool EvChannel::ScanBanks(const std::vector<uint32_t> &banks)
             std::cout << "\n";
         }
         std::cout << std::dec;
-        */
         return false;
     }
 
     return true;
 }
+*/
 
 // scan trigger bank
 size_t EvChannel::scanTriggerBank(const uint32_t *buf, size_t /* gindex */)
 {
+    std::cout << "trigger bank scanned" << std::endl;
     auto header = BankHeader(buf);
     size_t iword = BankHeader::size();
     // sanity check
@@ -140,7 +170,7 @@ size_t EvChannel::scanTriggerBank(const uint32_t *buf, size_t /* gindex */)
             throw(std::runtime_error("unexpected segment in trigger bank: " + std::to_string(seg.type)));
         }
         // pass this segment
-        iword += seg.num + 1;
+        iword += seg.length + 1;
     }
 
     return iword;
@@ -148,6 +178,7 @@ size_t EvChannel::scanTriggerBank(const uint32_t *buf, size_t /* gindex */)
 
 size_t EvChannel::scanRocBank(const uint32_t *buf, size_t gindex, const std::vector<uint32_t> &banks)
 {
+    std::cout << "roc bank scanned" << std::endl;
     auto header = BankHeader(buf);
     size_t iword = BankHeader::size();
 
@@ -178,6 +209,7 @@ size_t EvChannel::scanRocBank(const uint32_t *buf, size_t gindex, const std::vec
 
 void EvChannel::scanDataBank(const uint32_t *buf, size_t buflen, uint32_t roc, uint32_t bank, size_t gindex)
 {
+    std::cout << "scanned roc = " << roc << ", bank = " << bank << std::endl;
     uint32_t slot, type, iev = 0;
     std::vector<BufferInfo> event_buffers;
     // scan the data bank
