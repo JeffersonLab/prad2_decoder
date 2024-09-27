@@ -90,11 +90,13 @@ static std::string DataType2str(int dtype)
  */
 struct BankHeader
 {
+    uint32_t start;
     uint32_t length, num, type, tag, padding;
 
-    BankHeader() : length(0) {}
+    BankHeader() : start(0), length(0) {}
     BankHeader(const uint32_t *buf)
     {
+        start = 0;
         length = buf[0];
         uint32_t word = buf[1];
         tag = (word >> 16) & 0xFFFF;

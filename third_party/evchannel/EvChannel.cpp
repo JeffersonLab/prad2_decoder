@@ -90,9 +90,10 @@ std::string EvChannel::RawBufferAsString(bool annotate_header)
 }
 
 
-size_t ScanBanks(std::function<bool(uint32_t, uint32_t)> filter)
+std::vector<BankHeader> ScanBanks(std::function<bool(uint32_t, uint32_t)> filter)
 {
-    return 0;
+    // scan and store all the banks
+    return {};
 }
 
 /*
