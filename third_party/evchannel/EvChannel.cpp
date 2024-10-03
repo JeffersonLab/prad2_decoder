@@ -59,12 +59,12 @@ std::string EvChannel::RawBufferAsString(bool annotate_header)
 {
     std::stringstream ss;
     auto evh = BankHeader(&buffer[0]);
-    uint32_t iword = 0;
+    uint32_t ibuf = 0;
     uint32_t event_length = evh.length + 1;
     ss << std::hex;
     for (size_t i = 0; i < event_length; ++i) {
         ss << "0x" << std::setw(8) << std::setfill('0') << buffer[i];
-        if (annotate_header && (i == iword)) {
+        if (annotate_header && (i == ibuf)) {
             evh = BankHeader(&buffer[i]);
             ss << "\t <- header word - "
                << "length: " << std::dec << evh.length
@@ -72,13 +72,13 @@ std::string EvChannel::RawBufferAsString(bool annotate_header)
                << ", type: " << DataType2str(evh.type) << " (" << std::hex << "0x" << evh.type << ")"
                << ", num: " << std::dec << evh.num << " (" << std::hex << "0x" << evh.num << ")"
                << std::hex;
-            iword += BankHeader::size();
+            ibuf += BankHeader::size();
             switch (evh.type) {
             case DATA_BANK:
             case DATA_ALSOBANK:
                 break;
             default:
-                iword += evh.length - 1;
+                ibuf += evh.length - 1;
                 break;
             }
         }
@@ -89,179 +89,33 @@ std::string EvChannel::RawBufferAsString(bool annotate_header)
     return ss.str();
 }
 
-
-std::vector<BankHeader> ScanBanks(std::function<bool(uint32_t, uint32_t)> filter)
+// scan and store all the banks
+std::vector<BankHeader> EvChannel::ScanBanks(std::function<bool(const BankHeader&)> filter)
 {
-    // scan and store all the banks
-    return {};
-}
+    std::vector<BankHeader> res;
 
-/*
-bool EvChannel::ScanBanks(const std::vector<uint32_t> &banks)
-{
-    buffer_info.clear();
+    // get the event header and its length
+    uint32_t ii = 0;
+    auto evh = BankHeader(&buffer[0], ii);
 
-    auto evh = BankHeader(&buffer[0]);
-    // skip the header
-    size_t iword = BankHeader::size();
+    while (ii < evh.length + 1) {
+        BankHeader blk(&buffer[ii], ii);
+        // save the bank header
+        if ( filter(blk) ) { res.push_back(blk); }
 
-    // sanity checks
-    if (evh.length > buffer.size()) {
-        std::cerr << "Ev Channel Error: Incomplete or corrupted event: event length = " << evh.length
-                  << ", while buffer size is only " << buffer.size() << std::endl;
-        return false;
-    }
+        ii += BankHeader::size();
 
-    if (evh.type != DATA_BANK) {
-        std::cerr << "Ev Channel Error: Expected DATA_BANK at the begining of an event, but got "
-                  << evh.type << std::endl;
-        return false;
-    }
-
-    // scan event, first one is the trigger bank
-    try {
-        iword += scanTriggerBank(&buffer[iword], iword);
-
-        // scan ROC banks
-        while (iword < evh.length + 1) {
-            iword += scanRocBank(&buffer[iword], iword, banks);
-        }
-
-    } catch (std::exception const& e) {
-        std::cerr << e.what() << std::endl;
-        std::cout << std::hex;
-        for (size_t i = 0; i < evh.length + 1; ++i) {
-            std::cout << "0x" << std::setw(8) << std::setfill('0') << buffer[i];
-            if (i == iword) { std::cout << "\t <-- this bank"; }
-            std::cout << "\n";
-        }
-        std::cout << std::dec;
-        return false;
-    }
-
-    return true;
-}
-*/
-
-// scan trigger bank
-size_t EvChannel::scanTriggerBank(const uint32_t *buf, size_t /* gindex */)
-{
-    std::cout << "trigger bank scanned" << std::endl;
-    auto header = BankHeader(buf);
-    size_t iword = BankHeader::size();
-    // sanity check
-    if (header.type != DATA_SEGMENT) {
-        throw(std::runtime_error("unexpected data type for trigger bank: " + std::to_string(header.type)));
-    }
-
-    // loop over the bank
-    while (iword < header.length + 1) {
-        SegmentHeader seg(buf + iword);
-        // TODO, utilize the trigger bank info
-        switch (seg.type) {
-        // time stamp segment
-        case DATA_ULONG64:
-        // event type segment
-        case DATA_USHORT16:
-        // ROC segment
-        case DATA_UINT32:
+        switch (blk.type) {
+        case DATA_BANK:
+        case DATA_ALSOBANK:
+            // banks inside the bank (headers just below)
             break;
-        // unexpected segment
         default:
-            throw(std::runtime_error("unexpected segment in trigger bank: " + std::to_string(seg.type)));
-        }
-        // pass this segment
-        iword += seg.length + 1;
-    }
-
-    return iword;
-}
-
-size_t EvChannel::scanRocBank(const uint32_t *buf, size_t gindex, const std::vector<uint32_t> &banks)
-{
-    std::cout << "roc bank scanned" << std::endl;
-    auto header = BankHeader(buf);
-    size_t iword = BankHeader::size();
-
-    switch (header.type) {
-    // bank of banks
-    case DATA_BANK:
-        break;
-    case DATA_UINT32:
-        throw(std::runtime_error("uint32_t data in ROC bank is not supported yet"));
-    default:
-        throw(std::runtime_error("unexpected data type in ROC bank: " + std::to_string(header.type)));
-    }
-
-    while (iword < header.length + 1) {
-        auto bh = BankHeader(buf + iword);
-        iword += BankHeader::size();
-
-        // only scan interested banks
-        if (banks.empty() || (std::find(banks.begin(), banks.end(), bh.tag) != banks.end())) {
-            scanDataBank(&buf[iword], bh.length - 1, header.tag, bh.tag, gindex + iword);
-        }
-
-        iword += bh.length - 1;
-    }
-
-    return iword;
-}
-
-void EvChannel::scanDataBank(const uint32_t *buf, size_t buflen, uint32_t roc, uint32_t bank, size_t gindex)
-{
-    std::cout << "scanned roc = " << roc << ", bank = " << bank << std::endl;
-    uint32_t slot, type, iev = 0;
-    std::vector<BufferInfo> event_buffers;
-    // scan the data bank
-    for (size_t iword = 0; iword < buflen; ++iword) {
-        // not a defininition word
-        if (!(buf[iword] & 0x80000000)) { continue; }
-
-        type = (buf[iword] >> 27) & 0xF;
-
-        switch (type) {
-        case BLOCK_HEADER:
-            {
-                BlockHeader blk(buf + iword);
-                event_buffers.clear();
-                slot = blk.slot;
-            }
-            break;
-        case BLOCK_TRAILER:
-            {
-                BlockTrailer blk(buf + iword);
-                if (slot != blk.slot) {
-                    std::string mes = "warning: unmatched slot between block header (" + std::to_string(slot)
-                                    + ") and trailer (" + std::to_string(blk.slot) + "), skip an event for roc "
-                                    + std::to_string(roc) + " bank " + std::to_string(bank);
-                    throw(std::runtime_error(mes));
-                }
-                if (event_buffers.size()) {
-                    event_buffers.back().len = iword - event_buffers.back().len;
-                    buffer_info[BufferAddress(roc, bank, slot)] = event_buffers;
-                }
-            }
-            break;
-        case EVENT_HEADER:
-            {
-                EventHeader evt(buf + iword);
-                if (slot != evt.slot) {
-                    std::string mes = "warning: unmatched slot between block header (" + std::to_string(slot)
-                                    + ") and event header (" + std::to_string(evt.slot) + "), skip an event for roc "
-                                    + std::to_string(roc) + " bank " + std::to_string(bank);
-                    throw(std::runtime_error(mes));
-                }
-                if (event_buffers.size()) {
-                    event_buffers.back().len = iword - event_buffers.back().len;
-                }
-                event_buffers.emplace_back(gindex + iword, iword);
-            }
-            break;
-        // skip other headers
-        default:
+            ii += blk.length - 1;
             break;
         }
     }
+
+    return res;
 }
 

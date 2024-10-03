@@ -127,13 +127,14 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
     auto &ref = modules.front();
     std::vector<uint64_t> times;
     while ((evchan.Read() == evc::status::success) && (nev-- != 0)) {
-        std::cout << evchan.RawBufferAsString() << std::endl;
-        count++;
-        if (count >= 5) { break; }
-        continue;
+
+        count ++;
+        if (count > 5) { break; }
+        /*
         if((count % PROGRESS_COUNT) == 0) {
             std::cout << "Processed events - " << count << "\r" << std::flush;
         }
+        */
 
         switch(evchan.GetEvHeader().tag) {
         // only want physics events
@@ -147,43 +148,18 @@ void write_raw_data(const std::string &dpath, const std::string &opath, const st
             continue;
         }
 
-        evchan.ScanBanks();
-        // get block level
-        int blvl = evchan.GetEvBuffer(ref.crate, ref.bank, ref.slot).size();
+        auto banks = evchan.ScanBanks();
 
-        const uint32_t *dbuf;
-        size_t buflen;
-        for (int ii = 0; ii < blvl; ++ii) {
-            // parse module data
-            for (auto &mod : modules) {
-                // get data buffer
-                try {
-                    dbuf = evchan.GetEvBuffer(mod.crate, mod.bank, mod.slot, ii, buflen);
-                } catch (std::exception &e) {
-                    std::cout << "warning: " << e.what() << "\n";
-                    continue;
-                }
-                // decode by module type
-                switch (mod.type) {
-                case kFADC250:
-                    {
-                        auto event = static_cast<fdec::Fadc250Event*>(mod.event);
-                        fdecoder.DecodeEvent(*event, dbuf, buflen);
-                        for (auto &ch : event->channels) {
-                            analyzer.Analyze(ch);
-                        }
-                        times.push_back(event->time);
-                    }
-                    break;
-                default:
-                    std::cout << "Unsupported module type " << mod.type << std::endl;
-                    break;
-                }
-            }
-            tree->Fill();
-            count ++;
+        for (auto bank : banks) {
+            std::cout << "start = " << bank.buf_loc
+                      << ", type = " << evc::DataType2str(evc::DataType(bank.type))
+                      << ", length = " << bank.length
+                      << ", tag = " << std::hex << "0x" << bank.tag
+                      << ", num = " << bank.num << std::dec
+                      << std::endl;
         }
 
+        // get block level
     }
     std::cout << "Processed events - " << count << std::endl;
     if (times.size()) {

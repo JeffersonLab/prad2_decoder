@@ -90,13 +90,13 @@ static std::string DataType2str(int dtype)
  */
 struct BankHeader
 {
-    uint32_t start;
+    uint32_t buf_loc;
     uint32_t length, num, type, tag, padding;
 
-    BankHeader() : start(0), length(0) {}
-    BankHeader(const uint32_t *buf)
+    BankHeader() : buf_loc(0), length(0) {}
+    BankHeader(const uint32_t *buf, uint32_t loc = 0)
     {
-        start = 0;
+        buf_loc = loc;
         length = buf[0];
         uint32_t word = buf[1];
         tag = (word >> 16) & 0xFFFF;
@@ -110,11 +110,13 @@ struct BankHeader
 
 struct SegmentHeader
 {
+    uint32_t buf_loc;
     uint32_t length, type, tag, padding;
 
-    SegmentHeader() {}
-    SegmentHeader(const uint32_t *buf)
+    SegmentHeader() : buf_loc(0) {}
+    SegmentHeader(const uint32_t *buf, uint32_t loc = 0)
     {
+        buf_loc = loc;
         uint32_t word = buf[0];
         tag = (word >> 24) & 0xFF;
         type = (word >> 16) & 0x3F;
@@ -127,11 +129,13 @@ struct SegmentHeader
 
 struct TagSegmentHeader
 {
+    uint32_t buf_loc;
     uint32_t length, type, tag;
 
-    TagSegmentHeader() {}
-    TagSegmentHeader(const uint32_t *buf)
+    TagSegmentHeader() : buf_loc(0) {}
+    TagSegmentHeader(const uint32_t *buf, uint32_t loc = 0)
     {
+        buf_loc = loc;
         uint32_t word = buf[0];
         tag = (word >> 20) & 0xFFF;
         type = (word >> 16) & 0xF;
