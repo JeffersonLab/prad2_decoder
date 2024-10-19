@@ -24,6 +24,7 @@ set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/${MAIN_PROJECT_NAME_LC})
 set(src
     EvChannel.cpp
     EtChannel.cpp
+    CompositeData.cpp
 )
 
 set(headers
@@ -31,6 +32,7 @@ set(headers
     EvChannel.h
     EtChannel.h
     EtConfigWrapper.h
+    CompositeData.h
 )
 
 set(LIBNAME evc)

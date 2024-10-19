@@ -42,7 +42,6 @@ PUBLIC
 target_link_libraries(${LIBNAME}
 PUBLIC
     ${ROOT_LIBRARIES}
-    evio
     ROOT::Spectrum
 )
 

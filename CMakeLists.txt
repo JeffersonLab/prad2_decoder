@@ -21,8 +21,9 @@ include(GNUInstallDirs)
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/${MAIN_PROJECT_NAME_LC})
 
 #----------------------------------------------------------------------------
-add_subdirectory(decoder)
 add_subdirectory(third_party)
+add_subdirectory(evchannel)
+add_subdirectory(decoder)
 
 
 # build executable
