@@ -22,8 +22,8 @@ set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/${MAIN_PROJECT_NAME_LC})
 
 #----------------------------------------------------------------------------
 add_subdirectory(third_party)
-add_subdirectory(evchannel)
-add_subdirectory(decoder)
+add_subdirectory(src/evchannel)
+add_subdirectory(src/decoder)
 
 
 # build executable
